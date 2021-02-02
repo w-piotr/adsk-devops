@@ -59,3 +59,40 @@
         enabled: yes
         state: restarted
 
+- hosts: stats_db
+  vars:
+    influx_db_rpm_url: https://dl.influxdata.com/influxdb/releases/influxdb-1.8.4.x86_64.rpm
+    telegraf_rpm_url: https://dl.influxdata.com/telegraf/releases/telegraf-1.16.2-1.x86_64.rpm
+    grafana_rpm_url: https://dl.grafana.com/oss/release/grafana-7.3.7-1.x86_64.rpm
+  become: yes
+  tasks:
+    - name: install telegraf
+      yum:
+        name: "{{ telegraf_rpm_url }}"
+    - name: create upload telegraf config
+      template:
+        src: files/telegraf/telegraf.conf
+        dest: /etc/telegraf/telegraf.conf
+    - name: restart telegraf
+      systemd:
+        name: telegraf
+        enabled: yes
+        state: restarted
+    - name: install inlfux db
+      yum:
+        name: "{{ influx_db_rpm_url }}"
+    - name: start influx db
+      systemd:
+        name: influxdb
+        enabled: yes
+        state: started
+    - name: install grafana
+      yum:
+        name: "{{ grafana_rpm_url }}"
+    - name: start grafana
+      systemd:
+        name: grafana-server
+        enabled: yes
+        state: started
+    
+
