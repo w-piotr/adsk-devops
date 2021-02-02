@@ -1,0 +1,61 @@
+---
+- hosts: app_nodes
+  become: yes
+  vars:
+    app_url: https://github.com/w-piotr/vouchershop/releases/download/v0.1/vouchershop.jar
+    java_rpm_url: https://corretto.aws/downloads/latest/amazon-corretto-11-x64-al2-jre.rpm
+    app_dest_dir: /opt/vouchershop
+    app_user: vouchershop 
+  tasks:
+    - name: install java
+      yum:
+        name: "{{ java_rpm_url }}"
+    - name: create user
+      user:
+        name: "{{ app_user }}"
+    - name: create dir structure
+      file:
+        path: "{{ app_dest_dir }}"
+        owner: "{{ app_user }}"
+        group: "{{ app_user }}"
+        state: directory
+    - name: download app jar file
+      get_url:
+        url: "{{ app_url }}"
+        dest: "{{ app_dest_dir }}"
+        owner: "{{ app_user }}"
+        group: "{{ app_user }}"
+    - name: put systemd cfg
+      template:
+        src: files/systemd/vouchershop.service
+        dest: /etc/systemd/system/vouchershop.service
+    - name: enable service on boot
+      systemd:
+        name: vouchershop
+        daemon_reload: yes
+        enabled: yes
+        state: restarted
+
+- hosts: web_nodes
+  vars:
+    epel_rpm_url: https://dl.fedoraproject.org/pub/epel/epel-release-latest-7.noarch.rpm
+    app_nodes:
+      - 172.31.39.146:8080
+  become: yes
+  tasks:
+    - name: install epel repository
+      yum:
+        name: "{{ epel_rpm_url }}"
+    - name: install nginx
+      yum:
+        name: nginx
+    - name: upload nginx config into etc
+      template:
+        src: files/nginx/vouchershop.conf
+        dest: /etc/nginx/conf.d/vouchershop.conf
+    - name: restart nginx
+      systemd:
+        name: nginx
+        enabled: yes
+        state: restarted
+
