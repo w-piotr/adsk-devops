@@ -39,10 +39,14 @@
 - hosts: web_nodes
   vars:
     epel_rpm_url: https://dl.fedoraproject.org/pub/epel/epel-release-latest-7.noarch.rpm
+    certbot_rpm_url: https://download-ib01.fedoraproject.org/pub/epel/7/x86_64/Packages/c/certbot-1.11.0-1.el7.noarch.rpm
     app_nodes:
       - 172.31.41.81:3000
-      - 172.31.46.217:8080
-      - 172.31.44.2:8080
+      - 172.31.39.74:8080
+      - 172.31.46.239:8080
+    #my domain does not exists
+    domain_name: vouchershop.wojaczek.pl
+    domain_owner_email: wojaczek-piotr@wp.pl
   become: yes
   tasks:
     - name: install epel repository
@@ -55,11 +59,20 @@
       template:
         src: files/nginx/vouchershop.conf
         dest: /etc/nginx/conf.d/vouchershop.conf
+    - name: install certbot
+      yum:
+        name: "{{ certbot_rpm_url }}"
+    - name: install certbot pluggin
+      yum:
+        name: certbot-nginx
     - name: restart nginx
       systemd:
         name: nginx
         enabled: yes
         state: restarted
+    - name: install cert
+      command:
+        cmd: certbot -i nginx --nginx -d "{{ domain_name }}" -m "{{ domain_owner_email }}" --agree-tos --redirect
 
 - hosts: stats_db
   vars:
